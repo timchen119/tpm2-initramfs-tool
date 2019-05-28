@@ -33,6 +33,11 @@ both SHA1 and SHA256 bank.
 Unseal the key to TPM with the policy on PCR0,PCR2,PCR4,PCR7 in both SHA1
 and SHA256 bank.
 
+./tpm2-initramfs-tool seal --data "DATA SEALED" -P 0x81000004 -T device:/dev/tpmrm0
+
+Seal the string "DATA SEALED" to the persistent object address 0x81000004 with the default
+policy on PCR7 in SHA256 bank.
+
 ```
 
 # Notice
