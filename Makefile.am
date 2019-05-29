@@ -16,9 +16,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ACLOCAL_AMFLAGS = -I m4 --install
-AM_CFLAGS       = $(EXTRA_CFLAGS) $(TSS2_ESYS_CFLAGS)
-AM_LDFLAGS      = $(EXTRA_LDFLAGS)
+AM_CFLAGS       = $(EXTRA_CFLAGS) $(TSS2_ESYS_CFLAGS) $(CODE_COVERAGE_CFLAGS)
+AM_LDFLAGS      = $(EXTRA_LDFLAGS) $(CODE_COVERAGE_LDFLAGS)
 AM_LDADD        = $(TSS2_ESYS_LIBS) -ldl
+
+### Add ax_* rules ###
+# ax_code_coverage
+if AUTOCONF_CODE_COVERAGE_2019_01_06
+include $(top_srcdir)/aminclude_static.am
+clean-local: code-coverage-clean
+distclean-local: code-coverage-dist-clean
+else
+@CODE_COVERAGE_RULES@
+endif
 
 bin_PROGRAMS = tpm2-initramfs-tool
 
@@ -26,7 +36,16 @@ tpm2_initramfs_tool_SOURCES = src/tpm2-initramfs-tool.c
 tpm2_initramfs_tool_LDADD = $(AM_LDADD)
 tpm2_initramfs_tool_LDFLAGS = $(AM_LDFLAGS)
 
-EXTRA_DIST = \
+### Tests ###
+TESTS =
+
+TESTS += $(TESTS_SHELL)
+
+TESTS_SHELL = test/tpm2-initramfs-tool.sh
+EXTRA_DIST = $(TESTS_SHELL)
+TEST_EXTENSIONS = .sh
+
+EXTRA_DIST += \
     CHANGELOG.md \
     LICENSE \
     README.md

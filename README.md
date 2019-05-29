@@ -40,6 +40,15 @@ policy on PCR7 in SHA256 bank.
 
 ```
 
+# Tests and Code Coverage
+
+Install lcov and configure with --enable-code-coverage
+
+```
+./configure --enable-code-coverage
+make check-code-coverage
+```
+
 # Notice
 
 Everytime you re-seal the new key it will overwrite the old persistent object.
