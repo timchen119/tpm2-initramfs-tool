@@ -1,0 +1,5 @@
+tpm2-initramfs-tool (0.1.0-dev) eoan; urgency=medium
+
+  * Initial release
+
+ -- Jian-Ding Chen (timchen119) <tim.chen119@canonical.com>  Wed, 29 May 2019 15:45:29 +0800

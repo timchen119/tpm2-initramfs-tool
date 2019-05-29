@@ -1,0 +1,87 @@
+.TH "tpm2-initramfs-tool" "1" " tpm2-initramfs-tool | General Commands Manual" "%" "MAY 2019" 
+.nh
+.ad l
+
+
+.SH Overview
+.PP
+This tool using the tpm2\-tss
+\[la]https://github.com/tpm2-software/tpm2-tss\[ra] software stack.
+Its purpose is to generate/seal/unseal the FDE encrypytion key into the TPM persistent
+object using TPM2 ESAPI.
+
+
+.SH Name
+.PP
+\fBtpm2\-initramfs\-tool\fP(1) \- Tool used in initramfs to seal/unseal FDE key to the TPM.
+
+
+.SH Build and install instructions
+.PP
+Standard installation using
+
+.PP
+.RS
+
+.nf
+$ ./bootstrap
+$ ./configure
+$ make
+$ sudo make install
+
+.fi
+.RE
+
+
+.SH Usage
+.PP
+.RS
+
+.nf
+$ ./tpm2\-initramfs\-tool seal \-T device:/dev/tpm0
+
+Generate and seal the key to TPM with the default policy on PCR7 in SHA256
+bank.
+
+$ ./tpm2\-initramfs\-tool unseal \-T device:/dev/tpm0
+
+Unseal the key to TPM with the default policy on PCR7 in SHA256 bank.
+
+$ ./tpm2\-initramfs\-tool seal \-\-pcrs 0,2,4,7 \-\-banks SHA1,SHA256 \-T device:/dev/tpmrm0
+
+Generate and seal the key to TPM with the policy on PCR0,PCR2,PCR4,PCR7 in
+both SHA1 and SHA256 bank.
+
+$ ./tpm2\-initramfs\-tool unseal \-\-pcrs 0,2,4,7 \-\-banks SHA1,SHA256 \-T device:/dev/tpmrm0
+
+Unseal the key to TPM with the policy on PCR0,PCR2,PCR4,PCR7 in both SHA1
+and SHA256 bank.
+
+$ ./tpm2\-initramfs\-tool seal \-\-data "DATA SEALED" \-P 0x81000004 \-T device:/dev/tpmrm0
+
+Seal the string "DATA SEALED" to the persistent object address 0x81000004 with the default
+policy on PCR7 in SHA256 bank.
+
+
+.fi
+.RE
+
+
+.SH Tests and Code Coverage
+.PP
+Install lcov and configure with \-\-enable\-code\-coverage
+
+.PP
+.RS
+
+.nf
+$ ./configure \-\-enable\-code\-coverage
+$ make check\-code\-coverage
+
+.fi
+.RE
+
+
+.SH Notice
+.PP
+Everytime you re\-seal the new key it will overwrite the old persistent object.
