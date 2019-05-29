@@ -759,8 +759,8 @@ static int parse_opts(int argc, char **argv)
                 sscanf(optarg, "%i", &opt.persistent) != 1) {
                 opt.persistent = TPM2_PERSISTENT_FIRST;
             }
-            if (opt.persistent < TPM2_PERSISTENT_FIRST ||
-                opt.persistent > TPM2_PERSISTENT_LAST) {
+            if (opt.persistent < (uint32_t) TPM2_PERSISTENT_FIRST ||
+                opt.persistent > (uint32_t) TPM2_PERSISTENT_LAST) {
                 ERR("Error parsing persistent object address.\n");
             }
             break;
