@@ -18,7 +18,7 @@
 AC_PREREQ([2.68])
 
 AC_INIT([tpm2-initramfs-tool],
-        [0.1.0-dev],
+        [0.1.0dev],
         [https://github.com/timchen119/tpm2-initramfs-tools/issues],
         [],
         [https://github.com/timchen119/tpm2-initramfs-tools])

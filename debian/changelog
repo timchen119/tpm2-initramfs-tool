@@ -1,4 +1,4 @@
-tpm2-initramfs-tool (0.1.0-dev) eoan; urgency=medium
+tpm2-initramfs-tool (0.1.0dev) eoan; urgency=medium
 
   * Initial release
 
