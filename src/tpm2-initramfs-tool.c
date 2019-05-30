@@ -263,7 +263,7 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
     TPML_PCR_SELECTION *pcrcheck, pcrsel = { .count = 0 };
 
     TPM2_HANDLE permanentHandle =
-            persistent ? persistent : TPM2_PERSISTENT_FIRST;
+            persistent ? persistent : (uint32_t)TPM2_PERSISTENT_FIRST;
     ESYS_TR persistent_handle1 = ESYS_TR_NONE;
 
     TPMI_YES_NO more_data;
@@ -308,10 +308,10 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
         chkrc(rc, goto error);
 
     /* Check if we already seal the persistent object */
-    rc = Esys_GetCapability(ctx, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
-                            TPM2_CAP_HANDLES,
-                            persistent ? persistent : TPM2_PERSISTENT_FIRST,
-                            TPM2_MAX_CAP_HANDLES, &more_data, &fetched_data);
+    rc = Esys_GetCapability(
+            ctx, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE, TPM2_CAP_HANDLES,
+            persistent ? persistent : (uint32_t)TPM2_PERSISTENT_FIRST,
+            TPM2_MAX_CAP_HANDLES, &more_data, &fetched_data);
     chkrc(rc, goto error);
     count = fetched_data->data.handles.count;
     free(fetched_data);
@@ -320,7 +320,7 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
     if (count > 0) {
         ESYS_TR outHandle;
         rc = Esys_TR_FromTPMPublic(
-                ctx, persistent ? persistent : TPM2_PERSISTENT_FIRST,
+                ctx, persistent ? persistent : (uint32_t)TPM2_PERSISTENT_FIRST,
                 ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE, &outHandle);
 
         if (rc == TSS2_RC_SUCCESS) {
@@ -504,10 +504,9 @@ static int pcr_unseal(uint32_t pcrs, uint32_t banks, uint32_t persistent,
     if (rc != TPM2_RC_INITIALIZE)
         chkrc(rc, goto error);
 
-    rc = Esys_TR_FromTPMPublic(ctx,
-                               persistent ? persistent : TPM2_PERSISTENT_FIRST,
-                               ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
-                               &primary);
+    rc = Esys_TR_FromTPMPublic(
+            ctx, persistent ? persistent : (uint32_t)TPM2_PERSISTENT_FIRST,
+            ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE, &primary);
     chkrc(rc, Esys_FlushContext(ctx, primary); goto error);
 
     rc = Esys_StartAuthSession(ctx, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
@@ -759,8 +758,8 @@ static int parse_opts(int argc, char **argv)
                 sscanf(optarg, "%i", &opt.persistent) != 1) {
                 opt.persistent = TPM2_PERSISTENT_FIRST;
             }
-            if (opt.persistent < (uint32_t) TPM2_PERSISTENT_FIRST ||
-                opt.persistent > (uint32_t) TPM2_PERSISTENT_LAST) {
+            if (opt.persistent < (uint32_t)TPM2_PERSISTENT_FIRST ||
+                opt.persistent > (uint32_t)TPM2_PERSISTENT_LAST) {
                 ERR("Error parsing persistent object address.\n");
             }
             break;
