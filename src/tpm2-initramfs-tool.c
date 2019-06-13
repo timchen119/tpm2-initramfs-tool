@@ -91,7 +91,7 @@
             .type = TPM2_ALG_KEYEDHASH,                                        \
             .nameAlg = TPM2_ALG_SHA256,                                        \
             .objectAttributes =                                                \
-                (TPMA_OBJECT_ADMINWITHPOLICY | TPMA_OBJECT_FIXEDTPM |          \
+                (TPMA_OBJECT_FIXEDTPM |          \
                  TPMA_OBJECT_FIXEDPARENT | TPMA_OBJECT_NODA),                  \
             .authPolicy = {.size = 0, .buffer = {0}},                          \
             .parameters.keyedHashDetail                                        \
@@ -260,7 +260,7 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
     TPM2B_PUBLIC *keyPublicSeal = NULL;
     TPM2B_PRIVATE *keyPrivateSeal = NULL;
 
-    TPML_PCR_SELECTION *pcrcheck, pcrsel = { .count = 0 };
+    TPML_PCR_SELECTION pcrsel = { .count = 0 };
 
     TPM2_HANDLE permanentHandle =
             persistent ? persistent : (uint32_t)TPM2_PERSISTENT_FIRST;
@@ -302,10 +302,6 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
 
     rc = Esys_Initialize(&ctx, tcti_context, NULL);
     chkrc(rc, goto error);
-
-    rc = Esys_Startup(ctx, TPM2_SU_CLEAR);
-    if (rc != TPM2_RC_INITIALIZE)
-        chkrc(rc, goto error);
 
     /* Check if we already seal the persistent object */
     rc = Esys_GetCapability(
@@ -360,15 +356,17 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
     chkrc(rc, Esys_FlushContext(ctx, primary); goto error);
 
     /* Check PCRs */
-    rc = Esys_PCR_Read(ctx, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE, &pcrsel,
-                       NULL, &pcrcheck, NULL);
+    rc = Esys_GetCapability(ctx, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
+                            TPM2_CAP_PCRS, 0, TPM2_MAX_TPM_PROPERTIES,
+                            &more_data, &fetched_data);
     chkrc(rc, goto error);
+    count = fetched_data->data.assignedPCR.count;
+    free(fetched_data);
 
-    if (pcrcheck->count == 0) {
+    if (count == 0) {
         dbg("No active banks selected");
         return -1;
     }
-    free(pcrcheck);
 
     /* Setup PCR policy
      * 1. Start Trial Session
@@ -382,11 +380,10 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
 
     rc = Esys_PolicyPCR(ctx, session, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
                         NULL, &pcrsel);
-    chkrc(rc, Esys_FlushContext(ctx, session); goto error);
+    chkrc(rc, goto error);
 
     rc = Esys_PolicyGetDigest(ctx, session, ESYS_TR_NONE, ESYS_TR_NONE,
                               ESYS_TR_NONE, &policyDigest);
-    Esys_FlushContext(ctx, session);
     chkrc(rc, goto error);
 
     keyInPublicSeal.publicArea.authPolicy = *policyDigest;
@@ -400,26 +397,29 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
                      &keySensitive, &keyInPublicSeal, &allOutsideInfo,
                      &allCreationPCR, &keyPrivateHmac, &keyPublicHmac, NULL,
                      NULL, NULL);
-    chkrc(rc, Esys_FlushContext(ctx, primary); goto error);
+    chkrc(rc, goto error);
 
     rc = Esys_Load(ctx, primary, ESYS_TR_PASSWORD, ESYS_TR_NONE, ESYS_TR_NONE,
                    keyPrivateHmac, keyPublicHmac, &key);
-    chkrc(rc, Esys_FlushContext(ctx, primary); goto error);
+    chkrc(rc, goto error);
 
     /* Save the object as persistent object */
     rc = Esys_EvictControl(ctx, ESYS_TR_RH_OWNER, key, ESYS_TR_PASSWORD,
                            ESYS_TR_NONE, ESYS_TR_NONE, permanentHandle,
                            &persistent_handle1);
-    chkrc(rc, Esys_FlushContext(ctx, primary); goto error);
+    chkrc(rc, goto error);
 
     printf("%s\n", secret);
 
     free(secret);
-    secret = NULL;
-    secret_size = 0;
 
-    Esys_FlushContext(ctx, key);
-    Esys_FlushContext(ctx, primary);
+    if (primary != ESYS_TR_NONE)
+        Esys_FlushContext(ctx, primary);
+    if (key != ESYS_TR_NONE)
+        Esys_FlushContext(ctx, key);
+    if (session != ESYS_TR_NONE)
+        Esys_FlushContext(ctx, session);
+
     Esys_Finalize(&ctx);
 
     return 0;
@@ -432,18 +432,24 @@ error:
     if (session != ESYS_TR_NONE)
         Esys_FlushContext(ctx, session);
 
-    free(fetched_data);
-    free(keyPublicHmac);
-    free(keyPrivateHmac);
-    free(keyPublicSeal);
-    free(keyPrivateSeal);
+    if (fetched_data)
+        free(fetched_data);
+    if (keyPublicHmac)
+        free(keyPublicHmac);
+    if (keyPrivateHmac)
+        free(keyPrivateHmac);
+    if (keyPublicSeal)
+        free(keyPublicSeal);
+    if (keyPrivateSeal)
+        free(keyPrivateSeal);
+
     Esys_Finalize(&ctx);
 
-    free(secret);
+    if (secret)
+        free(secret);
     if (base32key)
         free(base32key);
-    secret = NULL;
-    secret_size = 0;
+
     return (rc) ? (int)rc : -1;
 }
 
@@ -500,33 +506,29 @@ static int pcr_unseal(uint32_t pcrs, uint32_t banks, uint32_t persistent,
     rc = Esys_Initialize(&ctx, tcti_context, NULL);
     chkrc(rc, goto error);
 
-    rc = Esys_Startup(ctx, TPM2_SU_CLEAR);
-    if (rc != TPM2_RC_INITIALIZE)
-        chkrc(rc, goto error);
-
     rc = Esys_TR_FromTPMPublic(
             ctx, persistent ? persistent : (uint32_t)TPM2_PERSISTENT_FIRST,
             ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE, &primary);
-    chkrc(rc, Esys_FlushContext(ctx, primary); goto error);
+    chkrc(rc, goto error);
 
     rc = Esys_StartAuthSession(ctx, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
                                ESYS_TR_NONE, ESYS_TR_NONE, NULL, TPM2_SE_POLICY,
                                &sym, TPM2_ALG_SHA256, &session);
-    chkrc(rc, Esys_FlushContext(ctx, session); goto error);
+    chkrc(rc, goto error);
 
     rc = Esys_PolicyPCR(ctx, session, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
                         NULL, &pcrsel);
-    chkrc(rc, Esys_FlushContext(ctx, session); goto error);
+    chkrc(rc, goto error);
 
     rc = Esys_Unseal(ctx, primary, session, ESYS_TR_NONE, ESYS_TR_NONE,
                      &secret2b);
-    chkrc(rc, Esys_FlushContext(ctx, primary); goto error);
+    chkrc(rc, goto error);
+
+    printf("%s\n", secret2b->buffer);
 
     if (session != ESYS_TR_NONE)
         Esys_FlushContext(ctx, session);
     Esys_Finalize(&ctx);
-
-    printf("%s\n", secret2b->buffer);
 
     return 0;
 
