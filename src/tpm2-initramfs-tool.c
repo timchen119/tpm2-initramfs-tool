@@ -44,7 +44,7 @@
 #include <tss2/tss2_esys.h>
 #include <tss2/tss2_tcti.h>
 
-#define SECRETLEN 64
+#define SECRETLEN 128
 
 #define DEFAULT_PCRS (0b000000000000000010000000)
 #define DEFAULT_BANKS (0b10)
