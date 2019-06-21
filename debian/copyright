@@ -4,13 +4,13 @@ Source: https://github.com/timchen119/tpm2-initramfs-tool
 
 Files: *
 Copyright: 2019 Canonical Ltd.
-License: GPL-2
+License: GPL-2+
 
 Files: debian/*
 Copyright: 2019 Canonical Ltd.
-License: GPL-2
+License: GPL-2+
 
-License: GPL-2
+License: GPL-2+
  On Debian systems the full text of the GNU General Public
  License can be found in the `/usr/share/common-licenses/GPL-2'
  file.

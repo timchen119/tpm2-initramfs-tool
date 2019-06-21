@@ -1,4 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
+/*******************************************************************************
+ * Copyright 2018, Fraunhofer SIT
+ * Copyright 2018, Jonas Witschel
+ * All rights reserved.
+ *******************************************************************************/
 /*
  * Copyright © 2019 Canonical Ltd.
  *
@@ -15,9 +20,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * Authored by: Tim Chen <tim.chen119@canonical.com>
- */
-
-/*
+ *
  * The code include functions, macros and structures based from the
  * following projects:
  * 
@@ -26,12 +29,6 @@
  * tpm2-tools https://github.com/tpm2-software/tpm2-tools
  *
  */
-
-/*******************************************************************************
- * Copyright 2018, Fraunhofer SIT
- * Copyright 2018, Jonas Witschel
- * All rights reserved.
- *******************************************************************************/
 
 #include <errno.h>
 #include <getopt.h>
@@ -45,16 +42,24 @@
 #include <tss2/tss2_tcti.h>
 
 #define SECRETLEN 128
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+#define SECRETLEN_STR STR(SECRETLEN)
 
+/* Trusted Platform Module Library Part 2: Structures,
+ * Revision 01.38, Section 10.6.1.
+ * Default PCRs list for pcrSelect: PCR 7
+ */
 #define DEFAULT_PCRS (0b000000000000000010000000)
+
+/* Default bank hash algorithm: TPM2_ALG_SHA256 */
 #define DEFAULT_BANKS (0b10)
 
 #define TPM2_BANK_SHA1 (1 << 0)
 #define TPM2_BANK_SHA256 (1 << 1)
 #define TPM2_BANK_SHA384 (1 << 2)
 
-#define dbg(m, ...) fprintf(stderr, m "\n", ##__VA_ARGS__)
-
+/* TODO: document templates, algorithms and object attributes */
 #define TPM2B_PUBLIC_PRIMARY_TEMPLATE                                          \
     {                                                                          \
         .size = 0, .publicArea = {                                      \
@@ -135,15 +140,17 @@ TPM2B_DATA allOutsideInfo = {
 };
 TPML_PCR_SELECTION allCreationPCR = { .count = 0 };
 
+/* TODO: add -o for output file, -i for input file */
 static const char *help =
         "Usage: [options] {seal|unseal}\n"
         "Options:\n"
         "    -h, --help       print help\n"
-        "    -D  --data       Seal provided data in the persistent object\n"
+        "    -D  --data       Seal provided data in the persistent object (max chars:" SECRETLEN_STR
+        ")\n"
         "    -P  --persistent Persistent object address (default: TPM2_PERSISTENT_FIRST)\n"
-        "    -b, --banks      Selected PCR banks (default: SHA256)\n"
-        "    -p, --pcrs       Selected PCR registers (default: 7)\n"
-        "    -T, --tcti       TCTI to use\n"
+        "    -b, --banks      Selected PCR banks (default: SHA256, comma for separated list)\n"
+        "    -p, --pcrs       Selected PCR registers (default: 7, comma for separated list)\n"
+        "    -T, --tcti       TCTI to use (e.g. device:/dev/tpm0)\n"
         "    -v, --verbose    print verbose messages\n"
         "\n";
 
@@ -175,13 +182,23 @@ static struct tcti {
     TSS2_TCTI_CONTEXT *context;
 } tcti;
 
+/** Function to generating base32 encoding string.
+ *
+ * This function generate the base32 encoding for input data.
+ * @param[in] in the chracter array pointer to be encoded.
+ * @param[in] in_size the size of the input data.
+ * @retval the pointer of base32 encoding chracters array.
+ */
 static char *base32enc(const uint8_t *in, size_t in_size)
 {
     static unsigned char base32[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
     size_t i = 0, j = 0;
     size_t out_size = ((in_size + 4) / 5) * 8;
+
     unsigned char *r = malloc(out_size + 1);
+    if (!r)
+        return NULL;
 
     while (1) {
         r[i++] = in[j] >> 3 & 0x1F;
@@ -225,8 +242,45 @@ static char *base32enc(const uint8_t *in, size_t in_size)
     return (char *)r;
 }
 
+/** Function to setup pcrSelections.
+ *
+ * This function setup PCRs selection list and bank hash algorithm.
+ * @param[in] pcrs PCRs the key should be sealed against.
+ * @param[in] banks PCR banks the key should be sealed against.
+ * @param[in,out] pcrsel PCRs selection list.
+ */
+static void setup_pcr_selections(uint32_t *pcrs, uint32_t *banks,
+                                 TPML_PCR_SELECTION *pcrsel)
+{
+    if (*pcrs == 0)
+        *pcrs = DEFAULT_PCRS;
+
+    if (*banks == 0)
+        *banks = DEFAULT_BANKS;
+
+    if ((*banks & TPM2_BANK_SHA1)) {
+        pcrsel->pcrSelections[pcrsel->count].hash = TPM2_ALG_SHA1;
+        pcrsel->count++;
+    }
+    if ((*banks & TPM2_BANK_SHA256)) {
+        pcrsel->pcrSelections[pcrsel->count].hash = TPM2_ALG_SHA256;
+        pcrsel->count++;
+    }
+    if ((*banks & TPM2_BANK_SHA384)) {
+        pcrsel->pcrSelections[pcrsel->count].hash = TPM2_ALG_SHA384;
+        pcrsel->count++;
+    }
+
+    for (size_t i = 0; i < pcrsel->count; i++) {
+        pcrsel->pcrSelections[i].sizeofSelect = 3;
+        pcrsel->pcrSelections[i].pcrSelect[0] = *pcrs & 0xff;
+        pcrsel->pcrSelections[i].pcrSelect[1] = *pcrs >> 8 & 0xff;
+        pcrsel->pcrSelections[i].pcrSelect[2] = *pcrs >> 16 & 0xff;
+    }
+}
+
 /** Generate a key and seal as a persistent object with policy of PCRs.
- * 
+ *
  * This function generate the key and seal it as a persistent object.
  * It output the key in base32 encoding to stdout.
  * @param[in] pcrs PCRs the key should be sealed against.
@@ -240,14 +294,14 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
                     uint32_t persistent, TSS2_TCTI_CONTEXT *tcti_context)
 {
     char *base32key = NULL;
-    size_t base32key_size = 0;
-    uint8_t *secret = 0;
-    size_t secret_size = 0;
+    size_t base32keySize = 0;
+    uint8_t *secret = NULL;
+    size_t secretSize = 0;
 
-    TPM2B_DIGEST *t, *policyDigest;
+    TPM2B_DIGEST *t = NULL, *policyDigest = NULL;
     ESYS_CONTEXT *ctx = NULL;
-    ESYS_TR primary, session, key;
-    TSS2_RC rc;
+    ESYS_TR primary = ESYS_TR_NONE, session = ESYS_TR_NONE, key = ESYS_TR_NONE;
+    TSS2_RC rc = -1;
 
     TPMT_SYM_DEF sym = { .algorithm = TPM2_ALG_AES,
                          .keyBits = { .aes = 128 },
@@ -258,47 +312,24 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
     TPM2B_PUBLIC *keyPublicHmac = NULL;
     TPM2B_PRIVATE *keyPrivateHmac = NULL;
     TPM2B_PUBLIC *keyPublicSeal = NULL;
-    TPM2B_PRIVATE *keyPrivateSeal = NULL;
 
     TPML_PCR_SELECTION pcrsel = { .count = 0 };
 
     TPM2_HANDLE permanentHandle =
             persistent ? persistent : (uint32_t)TPM2_PERSISTENT_FIRST;
-    ESYS_TR persistent_handle1 = ESYS_TR_NONE;
+    ESYS_TR persistentHandle1 = ESYS_TR_NONE;
 
-    TPMI_YES_NO more_data;
-    TPMS_CAPABILITY_DATA *fetched_data = NULL;
+    TPMI_YES_NO moreData;
+    TPMS_CAPABILITY_DATA *fetchedData = NULL;
     int count;
 
-    if (pcrs == 0)
-        pcrs = DEFAULT_PCRS;
-    if (banks == 0)
-        banks = DEFAULT_BANKS;
+    setup_pcr_selections(&pcrs, &banks, &pcrsel);
 
-    if ((banks & TPM2_BANK_SHA1)) {
-        pcrsel.pcrSelections[pcrsel.count].hash = TPM2_ALG_SHA1;
-        pcrsel.count++;
-    }
-    if ((banks & TPM2_BANK_SHA256)) {
-        pcrsel.pcrSelections[pcrsel.count].hash = TPM2_ALG_SHA256;
-        pcrsel.count++;
-    }
-    if ((banks & TPM2_BANK_SHA384)) {
-        pcrsel.pcrSelections[pcrsel.count].hash = TPM2_ALG_SHA384;
-        pcrsel.count++;
-    }
-
-    for (size_t i = 0; i < pcrsel.count; i++) {
-        pcrsel.pcrSelections[i].sizeofSelect = 3;
-        pcrsel.pcrSelections[i].pcrSelect[0] = pcrs & 0xff;
-        pcrsel.pcrSelections[i].pcrSelect[1] = pcrs >> 8 & 0xff;
-        pcrsel.pcrSelections[i].pcrSelect[2] = pcrs >> 16 & 0xff;
-    }
-
-    secret = malloc(SECRETLEN);
+    secret = malloc(SECRETLEN + 1);
     if (!secret) {
         return -1;
     }
+    memset(secret, 0, SECRETLEN + 1);
 
     rc = Esys_Initialize(&ctx, tcti_context, NULL);
     chkrc(rc, goto error);
@@ -307,12 +338,11 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
     rc = Esys_GetCapability(
             ctx, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE, TPM2_CAP_HANDLES,
             persistent ? persistent : (uint32_t)TPM2_PERSISTENT_FIRST,
-            TPM2_MAX_CAP_HANDLES, &more_data, &fetched_data);
+            TPM2_MAX_CAP_HANDLES, &moreData, &fetchedData);
     chkrc(rc, goto error);
-    count = fetched_data->data.handles.count;
-    free(fetched_data);
+    count = fetchedData->data.handles.count;
 
-    /* If more than 1 persistent handle, try to remove the one we used */
+    /* If persistent handle exists, try to remove the handle we plan to use */
     if (count > 0) {
         ESYS_TR outHandle;
         rc = Esys_TR_FromTPMPublic(
@@ -320,33 +350,41 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
                 ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE, &outHandle);
 
         if (rc == TSS2_RC_SUCCESS) {
+            VERB("Remove the persistent handle on 0x%x\n", persistent);
             rc = Esys_EvictControl(ctx, ESYS_TR_RH_OWNER, outHandle,
                                    ESYS_TR_PASSWORD, ESYS_TR_NONE, ESYS_TR_NONE,
-                                   permanentHandle, &persistent_handle1);
+                                   permanentHandle, &persistentHandle1);
             chkrc(rc, Esys_FlushContext(ctx, outHandle); goto error);
         }
     }
 
     /* To seal the provided data */
     if (data) {
-        secret_size = strnlen(data, SECRETLEN);
-        memcpy(&(secret)[0], &(data)[0], secret_size);
+        if (strlen(data) > SECRETLEN)
+            VERB("truncating provided data to " STR(SECRETLEN) " bytes \n");
+        secretSize = strnlen(data, SECRETLEN);
+        memcpy(&(secret)[0], &(data)[0], secretSize);
     } else {
         /* Generate the random string from TPM if no data provided */
-        while (secret_size < SECRETLEN) {
-            /* dbg("Calling Esys_GetRandom for %zu bytes", SECRETLEN - secret_size); */
-            rc = Esys_GetRandom(ctx, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
-                                SECRETLEN - secret_size, &t);
-            chkrc(rc, goto error);
-            base32key = base32enc(t->buffer, t->size);
-            base32key_size = strnlen(base32key, SECRETLEN - secret_size);
+        while (secretSize < SECRETLEN) {
+            VERB("Calling Esys_GetRandom for %zu bytes\n",
+                 SECRETLEN - secretSize);
 
-            memcpy(&(secret)[secret_size], &(base32key)[0], base32key_size);
-            secret_size += base32key_size;
-            free(t);
-            free(base32key);
+            rc = Esys_GetRandom(ctx, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
+                                SECRETLEN - secretSize, &t);
+            chkrc(rc, goto error);
+
+            base32key = base32enc(t->buffer, t->size);
+            if (!base32key)
+                goto error;
+
+            base32keySize = strnlen(base32key, SECRETLEN - secretSize);
+
+            memcpy(&(secret)[secretSize], &(base32key)[0], base32keySize);
+            secretSize += base32keySize;
         }
     }
+
     /* Create Primary Object under the TPM_RH_OWNER hierarchy */
     rc = Esys_CreatePrimary(ctx, ESYS_TR_RH_OWNER, ESYS_TR_PASSWORD,
                             ESYS_TR_NONE, ESYS_TR_NONE, &primarySensitive,
@@ -358,13 +396,12 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
     /* Check PCRs */
     rc = Esys_GetCapability(ctx, ESYS_TR_NONE, ESYS_TR_NONE, ESYS_TR_NONE,
                             TPM2_CAP_PCRS, 0, TPM2_MAX_TPM_PROPERTIES,
-                            &more_data, &fetched_data);
+                            &moreData, &fetchedData);
     chkrc(rc, goto error);
-    count = fetched_data->data.assignedPCR.count;
-    free(fetched_data);
+    count = fetchedData->data.assignedPCR.count;
 
     if (count == 0) {
-        dbg("No active banks selected");
+        ERR("No active banks selected");
         return -1;
     }
 
@@ -387,10 +424,9 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
     chkrc(rc, goto error);
 
     keyInPublicSeal.publicArea.authPolicy = *policyDigest;
-    free(policyDigest);
 
-    keySensitive.sensitive.data.size = secret_size;
-    memcpy(&keySensitive.sensitive.data.buffer[0], &(secret)[0], secret_size);
+    keySensitive.sensitive.data.size = secretSize;
+    memcpy(&keySensitive.sensitive.data.buffer[0], &(secret)[0], secretSize);
 
     /* Create an object that can be loaded into TPM */
     rc = Esys_Create(ctx, primary, ESYS_TR_PASSWORD, ESYS_TR_NONE, ESYS_TR_NONE,
@@ -406,51 +442,44 @@ static int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
     /* Save the object as persistent object */
     rc = Esys_EvictControl(ctx, ESYS_TR_RH_OWNER, key, ESYS_TR_PASSWORD,
                            ESYS_TR_NONE, ESYS_TR_NONE, permanentHandle,
-                           &persistent_handle1);
+                           &persistentHandle1);
     chkrc(rc, goto error);
 
-    printf("%s\n", secret);
+    printf("%s", secret);
 
-    free(secret);
+    rc = 0;
 
-    if (primary != ESYS_TR_NONE)
-        Esys_FlushContext(ctx, primary);
-    if (key != ESYS_TR_NONE)
-        Esys_FlushContext(ctx, key);
-    if (session != ESYS_TR_NONE)
-        Esys_FlushContext(ctx, session);
-
-    Esys_Finalize(&ctx);
-
-    return 0;
-
+/* clean up */
 error:
+
+    if (base32key)
+        free(base32key);
+    if (secret)
+        free(secret);
+    if (t)
+        free(t);
+    if (policyDigest)
+        free(policyDigest);
+
     if (primary != ESYS_TR_NONE)
         Esys_FlushContext(ctx, primary);
-    if (key != ESYS_TR_NONE)
-        Esys_FlushContext(ctx, key);
     if (session != ESYS_TR_NONE)
         Esys_FlushContext(ctx, session);
+    if (key != ESYS_TR_NONE)
+        Esys_FlushContext(ctx, key);
+    if (ctx)
+        Esys_Finalize(&ctx);
 
-    if (fetched_data)
-        free(fetched_data);
     if (keyPublicHmac)
         free(keyPublicHmac);
     if (keyPrivateHmac)
         free(keyPrivateHmac);
     if (keyPublicSeal)
         free(keyPublicSeal);
-    if (keyPrivateSeal)
-        free(keyPrivateSeal);
+    if (fetchedData)
+        free(fetchedData);
 
-    Esys_Finalize(&ctx);
-
-    if (secret)
-        free(secret);
-    if (base32key)
-        free(base32key);
-
-    return (rc) ? (int)rc : -1;
+    return (int)rc;
 }
 
 /** Unseal a key with PCRs.
@@ -469,7 +498,7 @@ static int pcr_unseal(uint32_t pcrs, uint32_t banks, uint32_t persistent,
 {
     ESYS_CONTEXT *ctx = NULL;
     ESYS_TR primary, session = ESYS_TR_NONE;
-    TSS2_RC rc;
+    TSS2_RC rc = -1;
     TPM2B_SENSITIVE_DATA *secret2b = NULL;
 
     TPMT_SYM_DEF sym = { .algorithm = TPM2_ALG_AES,
@@ -478,30 +507,7 @@ static int pcr_unseal(uint32_t pcrs, uint32_t banks, uint32_t persistent,
 
     TPML_PCR_SELECTION pcrsel = { .count = 0 };
 
-    if (pcrs == 0)
-        pcrs = DEFAULT_PCRS;
-    if (banks == 0)
-        banks = DEFAULT_BANKS;
-
-    if ((banks & TPM2_BANK_SHA1)) {
-        pcrsel.pcrSelections[pcrsel.count].hash = TPM2_ALG_SHA1;
-        pcrsel.count++;
-    }
-    if ((banks & TPM2_BANK_SHA256)) {
-        pcrsel.pcrSelections[pcrsel.count].hash = TPM2_ALG_SHA256;
-        pcrsel.count++;
-    }
-    if ((banks & TPM2_BANK_SHA384)) {
-        pcrsel.pcrSelections[pcrsel.count].hash = TPM2_ALG_SHA384;
-        pcrsel.count++;
-    }
-
-    for (size_t i = 0; i < pcrsel.count; i++) {
-        pcrsel.pcrSelections[i].sizeofSelect = 3;
-        pcrsel.pcrSelections[i].pcrSelect[0] = pcrs & 0xff;
-        pcrsel.pcrSelections[i].pcrSelect[1] = pcrs >> 8 & 0xff;
-        pcrsel.pcrSelections[i].pcrSelect[2] = pcrs >> 16 & 0xff;
-    }
+    setup_pcr_selections(&pcrs, &banks, &pcrsel);
 
     rc = Esys_Initialize(&ctx, tcti_context, NULL);
     chkrc(rc, goto error);
@@ -524,22 +530,29 @@ static int pcr_unseal(uint32_t pcrs, uint32_t banks, uint32_t persistent,
                      &secret2b);
     chkrc(rc, goto error);
 
-    printf("%s\n", secret2b->buffer);
+    printf("%s", secret2b->buffer);
 
-    if (session != ESYS_TR_NONE)
-        Esys_FlushContext(ctx, session);
-    Esys_Finalize(&ctx);
+    rc = 0;
 
-    return 0;
-
+/* clean up */
 error:
+
+    if (secret2b)
+        free(secret2b);
     if (session != ESYS_TR_NONE)
         Esys_FlushContext(ctx, session);
-    Esys_Finalize(&ctx);
-    return (rc) ? (int)rc : -1;
+    if (ctx)
+        Esys_Finalize(&ctx);
+    return (int)rc;
 }
 
-/* TCTI related functions */
+/** Parse TCTI options string.
+ *
+ * This function parse TCTI options string.
+ * @param[in] str The TCTI options string.
+ * @param[out] path the TCTI module library path.
+ * @param[out] conf the TCTI configuration string.
+ */
 static void tcti_parse_string(char *str, char **path, char **conf)
 {
     *path = str;
@@ -552,6 +565,11 @@ static void tcti_parse_string(char *str, char **path, char **conf)
     }
 }
 
+/** Load TCTI dynamic library.
+ *
+ * This function use dlopen to load TCTI library dynamicly.
+ * @param[in] path the TCTI module library path.
+ */
 static void *tcti_dlopen(const char *path)
 {
     void *dlhandle;
@@ -583,6 +601,14 @@ static void *tcti_dlopen(const char *path)
     }
 }
 
+/** Initial TCTI context.
+ *
+ * This function will unseal the persistent object based on the PCRs.
+ * @param[in] str The TCTI options string.
+ * @param[out] context TCTI context to select TPM to use.
+ * @retval 0 on success.
+ * @retval 1 on undefined/general failure.
+ */
 static int tcti_init(char *str, TSS2_TCTI_CONTEXT **context)
 {
     *context = tcti.context = NULL;
@@ -647,6 +673,7 @@ err:
     return 1;
 }
 
+/* Finalize TCTI context */
 static void tcti_finalize()
 {
     if (tcti.context) {
@@ -840,15 +867,17 @@ int main(int argc, char **argv)
 
         rc = pcr_seal(opt.data, opt.pcrs, opt.banks, opt.persistent,
                       tcti_context);
-        chkrc(rc, goto err);
-
+        if (rc != 0) {
+            goto err;
+        }
         break;
 
     case CMD_UNSEAL:
 
         rc = pcr_unseal(opt.pcrs, opt.banks, opt.persistent, tcti_context);
-        chkrc(rc, goto err);
-
+        if (rc != 0) {
+            goto err;
+        }
         break;
 
     default:
