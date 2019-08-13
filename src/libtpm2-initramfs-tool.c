@@ -189,7 +189,6 @@ int pcr_seal(const char *data, uint32_t pcrs, uint32_t banks,
     TPM2B_SENSITIVE_CREATE keySensitive = TPM2B_SENSITIVE_CREATE_TEMPLATE;
     TPM2B_PUBLIC *keyPublicHmac = NULL;
     TPM2B_PRIVATE *keyPrivateHmac = NULL;
-    TPM2B_PUBLIC *keyPublicSeal = NULL;
 
     TPML_PCR_SELECTION pcrsel = { .count = 0 };
 
@@ -352,8 +351,6 @@ error:
         free(keyPublicHmac);
     if (keyPrivateHmac)
         free(keyPrivateHmac);
-    if (keyPublicSeal)
-        free(keyPublicSeal);
     if (fetchedData)
         free(fetchedData);
 
