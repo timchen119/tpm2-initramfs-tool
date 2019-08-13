@@ -7,6 +7,11 @@ This tool using the [tpm2-tss](https://github.com/tpm2-software/tpm2-tss) softwa
 Its purpose is to generate/seal/unseal the FDE encrypytion key into the TPM persistent
 object using TPM2 ESAPI.
 
+The code include functions, macros and structures based from the following projects:
+* tpm2-tss   https://github.com/tpm2-software/tpm2-tss
+* tpm2-totp  https://github.com/tpm2-software/tpm2-totp
+* tpm2-tools https://github.com/tpm2-software/tpm2-tools
+
 # Name
 **tpm2-initramfs-tool**(1) - Tool used in initramfs to seal/unseal FDE key to the TPM.
 
@@ -49,7 +54,9 @@ policy on PCR7 in SHA256 bank.
 
 # Tests and Code Coverage
 
-Install lcov and configure with --enable-code-coverage
+Install lcov and configure with --enable-code-coverage.
+You will need to install TPM 2.0 simulator for integration tests, see
+https://github.com/tpm2-software/tpm2-tools/wiki/Getting-Started#installing-the-tpm20-simulator
 
 ```
 $ ./configure --enable-code-coverage
