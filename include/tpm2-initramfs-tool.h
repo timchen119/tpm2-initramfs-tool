@@ -1,11 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
-/*******************************************************************************
+/*
  * Copyright 2018, Fraunhofer SIT
  * Copyright 2018, Jonas Witschel
- * All rights reserved.
- *******************************************************************************/
-/*
  * Copyright © 2019 Canonical Ltd.
+ * All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 or 3 as
@@ -22,7 +20,6 @@
  * Authored by: Tim Chen <tim.chen119@canonical.com>
  *
  */
-
 #include <errno.h>
 #include <getopt.h>
 #include <inttypes.h>

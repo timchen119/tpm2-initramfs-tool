@@ -1,4 +1,12 @@
-tpm2-initramfs-tool (0.1.0dev) eoan; urgency=medium
+tpm2-initramfs-tool (0.2.0) eoan; urgency=medium
+
+  * Large refactor and add tests/code coverage
+
+    Large refactor, add tests and add functionality to seal provided data and persistent object address.
+
+ -- Jian-Ding Chen (timchen119) <tim.chen119@canonical.com>  Mon, 19 Aug 2019 11:25:04 +0800
+
+tpm2-initramfs-tool (0.1.0) eoan; urgency=medium
 
   * Initial release
 

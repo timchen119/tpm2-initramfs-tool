@@ -20,6 +20,19 @@
 
 set -eufx
 
+./tpm2-initramfs-tool --help
+./tpm2-initramfs-tool -h
+./tpm2-initramfs-tool 2>&1 | grep "Missing command"
+./tpm2-initramfs-tool nothisarg 2>&1 | grep "Unknown command"
+./tpm2-initramfs-tool --nothisoption 2>&1 | grep "Unknown option"
+./tpm2-initramfs-tool seal nothisarg 2>&1 | grep "Unknown argument provided"
+./tpm2-initramfs-tool seal --tcti nothistcti 2>&1 | grep "Could not open TCTI"
+./tpm2-initramfs-tool seal --banks SHA999 2>&1 | grep "Error parsing banks"
+./tpm2-initramfs-tool seal --pcrs 0,2,4,kk 2>&1 | grep "Error parsing pcrs"
+
+command -v tpm_server >/dev/null 2>&1 || exit 77
+command -v tpm2_startup >/dev/null 2>&1 || exit 77
+
 tpm_server_port="$(shuf --input-range 1024-65534 --head-count 1)"
 echo "Starting simulator on port $tpm_server_port"
 tpm_server -port "$tpm_server_port" &
@@ -30,18 +43,6 @@ cleanup() {
   kill "$tpm_server_pid"
 }
 trap cleanup INT TERM EXIT
-
-./tpm2-initramfs-tool --help
-./tpm2-initramfs-tool -h
-./tpm2-initramfs-tool 2>&1 | grep "Missing command"
-./tpm2-initramfs-tool nothisarg 2>&1 | grep "Unknown command"
-./tpm2-initramfs-tool --nothisoption 2>&1 | grep "Unknown option"
-./tpm2-initramfs-tool seal nothisarg 2>&1 | grep "Unknown argument provided"
-
-./tpm2-initramfs-tool seal --tcti nothistcti 2>&1 | grep "Could not open TCTI"
-./tpm2-initramfs-tool seal --banks SHA999 2>&1 | grep "Error parsing banks"
-./tpm2-initramfs-tool seal --pcrs 0,2,4,kk 2>&1 | grep "Error parsing pcrs"
-
 
 sleep 1
 

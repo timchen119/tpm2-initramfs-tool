@@ -1,11 +1,9 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
-/*******************************************************************************
+/*
  * Copyright 2018, Fraunhofer SIT
  * Copyright 2018, Jonas Witschel
- * All rights reserved.
- *******************************************************************************/
-/*
  * Copyright © 2019 Canonical Ltd.
+ * All rights reserved.
  *
  * This program is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License version 2 or 3 as
@@ -36,6 +34,7 @@ TPML_PCR_SELECTION allCreationPCR = { .count = 0 };
 /* TODO: add -o for output file, -i for input file */
 const char *help =
         "Usage: [options] {seal|unseal}\n"
+        "Version: " PACKAGE_VERSION "\n"
         "Options:\n"
         "    -h, --help       print help\n"
         "    -D  --data       Seal provided data in the persistent object (max chars:" SECRETLEN_STR
@@ -60,10 +59,10 @@ const struct option long_options[] = {
     { 0, 0, 0, 0 }
 };
 
-/** Function to generating base32 encoding string.
+/** Function to generate base32 encoding string.
  *
- * This function generate the base32 encoding for input data.
- * @param[in] in the chracter array pointer to be encoded.
+ * This function generates the base32 encoding for input data.
+ * @param[in] in the character array pointer to be encoded.
  * @param[in] in_size the size of the input data.
  * @retval the pointer of base32 encoding chracters array.
  */
