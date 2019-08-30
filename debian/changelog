@@ -1,4 +1,4 @@
-tpm2-initramfs-tool (0.2.1) eoan; urgency=medium
+tpm2-initramfs-tool (0.2.1-1) eoan; urgency=medium
 
   * Remove debian/ from master branch and use quilt format.
 
