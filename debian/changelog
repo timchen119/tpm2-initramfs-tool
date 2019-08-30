@@ -1,3 +1,9 @@
+tpm2-initramfs-tool (0.2.1) eoan; urgency=medium
+
+  * Remove debian/ from master branch and use quilt format.
+
+ -- Jian-Ding Chen (timchen119) <tim.chen119@canonical.com>  Fri, 30 Aug 2019 15:33:04 +0800
+
 tpm2-initramfs-tool (0.2.0) eoan; urgency=medium
 
   * Large refactor and add tests/code coverage
