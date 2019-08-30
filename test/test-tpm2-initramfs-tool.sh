@@ -30,6 +30,7 @@ set -eufx
 ./tpm2-initramfs-tool seal --banks SHA999 2>&1 | grep "Error parsing banks"
 ./tpm2-initramfs-tool seal --pcrs 0,2,4,kk 2>&1 | grep "Error parsing pcrs"
 
+# if no tpm_server (TPM simulator) or tpm2_startup (from tpm2-tools) found, skip the integration tests
 command -v tpm_server >/dev/null 2>&1 || exit 77
 command -v tpm2_startup >/dev/null 2>&1 || exit 77
 
@@ -47,7 +48,12 @@ trap cleanup INT TERM EXIT
 sleep 1
 
 tpm2_startup --clear -T mssim:host=localhost,port=$tpm_server_port
+
+# seal the "DATA SEALED" string as a persitent object in TPM simulator, using current PCRs 0,2,4,7 with bank SHA1 and SHA256
 ./tpm2-initramfs-tool seal --pcrs 0,2,4,7 --banks SHA1,SHA256 --data "DATA SEALED" -T mssim:host=localhost,port=$tpm_server_port
+# unseal the data from TPM simulator and check if it works
 ./tpm2-initramfs-tool unseal --pcrs 0,2,4,7 --banks SHA1,SHA256 -T mssim:host=localhost,port=$tpm_server_port | grep "DATA SEALED"
+# seal a TPM random string to address 0x81000004 as a persitant object in TPM simulator, with default PCR 7 on bank SHA384
 SEAL_DATA=$(./tpm2-initramfs-tool seal -v -P 0x81000004 --banks SHA384 -T mssim:host=localhost,port=$tpm_server_port)
+# unseal from TPM and make sure the data sealed is correct
 ./tpm2-initramfs-tool unseal -P 0x81000004 --banks SHA384 -v -T mssim:host=localhost,port=$tpm_server_port | grep "$SEAL_DATA"

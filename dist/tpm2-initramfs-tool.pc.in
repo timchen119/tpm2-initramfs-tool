@@ -4,5 +4,5 @@ exec_prefix=${prefix}
 Name: tpm2-initramfs-tool
 Description: a single binary to be used in the initramfs to seal and unseal the key based on PCR policy using ESAPI from the TCG's TPM Software Stack compliant tpm2-tss libraries 
 URL: https://github.com/timchen119/tpm2-initramfs-tool
-Version: 0.2.0
+Version: 0.2.1
 Requires.private: tss2-esys
