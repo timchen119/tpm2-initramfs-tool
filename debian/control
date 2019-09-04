@@ -10,7 +10,7 @@ Build-Depends: debhelper (>= 9.20160403~),
                libssl-dev,
                autoconf,
                libtss2-dev (>= 2.1.0-4)
-Standards-Version: 3.9.7
+Standards-Version: 4.4.0
 Section: admin
 Homepage: https://github.com/timchen119/tpm2-initramfs-tool
 Vcs-Git: https://github.com/timchen119/tpm2-initramfs-tool.git

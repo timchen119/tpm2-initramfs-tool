@@ -4,6 +4,8 @@ Source: https://github.com/timchen119/tpm2-initramfs-tool
 
 Files: *
 Copyright: 2019 Canonical Ltd.
+           2018 Fraunhofer SIT
+           2018 Jonas Witschel
 License: GPL-2+
 
 Files: debian/*
