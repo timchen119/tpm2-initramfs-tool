@@ -1,3 +1,9 @@
+tpm2-initramfs-tool (0.2.1-2) unstable; urgency=medium
+
+  * Bump version for debian upload. (closes: #939366)
+
+ -- Jian-Ding Chen (timchen119) <tim.chen119@canonical.com>  Wed, 04 Sep 2019 11:58:05 +0800
+
 tpm2-initramfs-tool (0.2.1-1) eoan; urgency=medium
 
   * Remove debian/ from master branch and use quilt format.
