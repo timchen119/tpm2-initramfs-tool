@@ -15,15 +15,6 @@ The code include functions, macros and structures based from the following proje
 # Name
 **tpm2-initramfs-tool**(1) - Tool used in initramfs to seal/unseal FDE key to the TPM.
 
-# Build and install instructions
-Standard installation using
-```
-$ ./bootstrap
-$ ./configure
-$ make
-$ sudo make install
-```
-
 # Usage
 ```
 $ ./tpm2-initramfs-tool seal -T device:/dev/tpm0
@@ -50,6 +41,44 @@ $ ./tpm2-initramfs-tool seal --data "DATA SEALED" -P 0x81000004 -T device:/dev/t
 Seal the string "DATA SEALED" to the persistent object address 0x81000004 with the default
 policy on PCR7 in SHA256 bank.
 
+```
+
+# Seal FDE key to TPM alone with Ubuntu 20.04 (focal) Desktop
+
+To install FDE with Ubuntu Desktop installer, select "Advanced features" -> "Use LVM with the new Ubuntu Installation" and
+check "Encrypt the new Ubuntu installation for security"
+
+Then, fill the security key in next page. For example, "goodpassphrase" for a bad passphrase ;)
+
+Once you have the FDE installed, you can install the package from Ubuntu archive
+to store your passphrase to TPM.
+
+```
+sudo apt install tpm2-initramfs-tool
+sudo tpm2-initramfs-tool seal --data "goodpassphrase"
+```
+
+edit /etc/crypttab, change "none" to "unseal", append keyscript=/usr/bin/tpm2-initramfs-tool
+
+Add binaries and libraries to initramfs
+```
+sudo cat > /etc/initramfs/hooks/tpm2-initramfs-tool <<EOF
+. /usr/share/initramfs-tools/hook-functions
+
+copy_exec /usr/bin/x86_64-linux-gnu/libtss2-tcti-device.so.0.0.0
+copy_exec /usr/bin/tpm2-initramfs-tool
+EOF
+sudo chmod 755 /etc/initramfs/hooks/tpm2-initramfs-tool
+sudo update-initramfs -u
+``
+
+# Build and install instructions
+Standard installation using
+```
+$ ./bootstrap
+$ ./configure
+$ make
+$ sudo make install
 ```
 
 # Tests and Code Coverage
