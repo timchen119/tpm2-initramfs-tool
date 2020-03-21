@@ -72,6 +72,8 @@ sudo chmod 755 /etc/initramfs/hooks/tpm2-initramfs-tool
 sudo update-initramfs -u
 ```
 
+Reboot the system, you should not need to type the passphrase and it will unlock the LUKS encrpyted disk from TPM directly.
+
 # Build and install instructions
 Standard installation using
 ```
