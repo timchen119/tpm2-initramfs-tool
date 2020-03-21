@@ -70,7 +70,7 @@ copy_exec /usr/bin/tpm2-initramfs-tool
 EOF
 sudo chmod 755 /etc/initramfs/hooks/tpm2-initramfs-tool
 sudo update-initramfs -u
-``
+```
 
 # Build and install instructions
 Standard installation using
