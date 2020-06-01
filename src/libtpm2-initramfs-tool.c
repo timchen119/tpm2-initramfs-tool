@@ -59,6 +59,9 @@ const struct option long_options[] = {
     { 0, 0, 0, 0 }
 };
 
+TPM2_INITRAMFS_TOOL_OPT opt;
+TPM2_INITRAMFS_TOOL_TCTI tcti;
+
 /** Function to generate base32 encoding string.
  *
  * This function generates the base32 encoding for input data.

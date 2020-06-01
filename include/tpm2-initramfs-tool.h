@@ -131,7 +131,7 @@ extern const char *help;
 extern const char *optstr;
 extern const struct option long_options[];
 
-struct {
+typedef struct {
     enum { CMD_NONE, CMD_SEAL, CMD_UNSEAL } cmd;
     char *data;
     uint32_t persistent;
@@ -139,12 +139,16 @@ struct {
     int pcrs;
     char *tcti;
     int verbose;
-} opt;
+} TPM2_INITRAMFS_TOOL_OPT;
 
-struct {
+extern TPM2_INITRAMFS_TOOL_OPT opt;
+
+typedef struct {
     void *dlhandle;
     TSS2_TCTI_CONTEXT *context;
-} tcti;
+} TPM2_INITRAMFS_TOOL_TCTI;
+
+extern TPM2_INITRAMFS_TOOL_TCTI tcti;
 
 void tcti_finalize();
 int tcti_init(char *str, TSS2_TCTI_CONTEXT **context);
