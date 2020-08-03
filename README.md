@@ -62,13 +62,13 @@ edit /etc/crypttab, change "none" to "unseal", append keyscript=/usr/bin/tpm2-in
 
 Add binaries and libraries to initramfs
 ```
-sudo cat > /etc/initramfs/hooks/tpm2-initramfs-tool <<EOF
+sudo cat > /etc/initramfs-tools/hooks/tpm2-initramfs-tool <<EOF
 . /usr/share/initramfs-tools/hook-functions
 
-copy_exec /usr/bin/x86_64-linux-gnu/libtss2-tcti-device.so.0.0.0
+copy_exec /usr/lib/x86_64-linux-gnu/libtss2-tcti-device.so.0
 copy_exec /usr/bin/tpm2-initramfs-tool
 EOF
-sudo chmod 755 /etc/initramfs/hooks/tpm2-initramfs-tool
+sudo chmod 755 /etc/initramfs-tools/hooks/tpm2-initramfs-tool
 sudo update-initramfs -u
 ```
 
