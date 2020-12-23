@@ -9,7 +9,7 @@ Build-Depends: debhelper (>= 9.20160403~),
                automake,
                libssl-dev,
                autoconf,
-               libtss2-dev (>= 2.1.0-4)
+               libtss2-dev (>= 3.0.3-1)
 Standards-Version: 4.4.0
 Section: admin
 Homepage: https://github.com/timchen119/tpm2-initramfs-tool
@@ -19,7 +19,7 @@ Package: tpm2-initramfs-tool
 Architecture: linux-any
 Depends: ${misc:Depends},
          ${shlibs:Depends},
-         libtss2-esys0 (>= 2.1.0-4)
+         libtss2-esys-3.0.2-0 (>= 3.0.3-1)
 Description: Tool used in initramfs to seal/unseal FDE key to the TPM
  This package provides the TPM tool used by the initramfs. 
  Its purpose is to generate/seal/unseal the FDE encrypytion key into 
