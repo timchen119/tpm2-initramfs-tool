@@ -1,5 +1,6 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: tpm2-initramfs-tool
+Upstream-Contact: timchen119@gmail.com
 Source: https://github.com/timchen119/tpm2-initramfs-tool
 
 Files: *
