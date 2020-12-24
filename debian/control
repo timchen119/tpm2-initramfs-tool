@@ -2,6 +2,7 @@ Source: tpm2-initramfs-tool
 Priority: optional
 Maintainer: Jian-Ding Chen (timchen119) <tim.chen119@canonical.com>
 Build-Depends: debhelper (>= 12),
+               debhelper-compat (= 12),
                libgcrypt20-dev,
                autoconf-archive,
                pkg-config,
