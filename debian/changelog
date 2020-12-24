@@ -2,13 +2,13 @@ tpm2-initramfs-tool (0.2.2-1.1) unstable; urgency=medium
 
   * Fix some of the debian/* warnings and errors.
 
- -- tim <tim@tim-GX70-3BE>  Thu, 24 Dec 2020 09:13:03 +0800
+ -- Jian-Ding Chen (timchen119) <timchen119@gmail.com>  Thu, 24 Dec 2020 09:13:03 +0800
 
 tpm2-initramfs-tool (0.2.2-1) unstable; urgency=medium
 
   * Update dependency for Debian Bullseye.
 
- -- tim <tim@tim-GX70-3BE>  Wed, 23 Dec 2020 20:41:40 +0800
+ -- Jian-Ding Chen (timchen119) <timchen119@gmail.com>  Wed, 23 Dec 2020 20:41:40 +0800
 
 tpm2-initramfs-tool (0.2.1-3) unstable; urgency=medium
 
