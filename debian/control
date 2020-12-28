@@ -1,6 +1,6 @@
 Source: tpm2-initramfs-tool
 Priority: optional
-Maintainer: Jian-Ding Chen (timchen119) <tim.chen119@canonical.com>
+Maintainer: Jian-Ding Chen (timchen119) <timchen119@gmail.com>
 Build-Depends: debhelper (>= 12),
                debhelper-compat (= 12),
                libgcrypt20-dev,
@@ -11,7 +11,7 @@ Build-Depends: debhelper (>= 12),
                libssl-dev,
                autoconf,
                libtss2-dev (>= 3.0.3)
-Standards-Version: 4.5.0
+Standards-Version: 4.5.1
 Section: admin
 Homepage: https://github.com/timchen119/tpm2-initramfs-tool
 Vcs-Git: https://github.com/timchen119/tpm2-initramfs-tool.git
