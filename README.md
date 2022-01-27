@@ -62,14 +62,16 @@ edit /etc/crypttab, change "none" to "unseal", append keyscript=/usr/bin/tpm2-in
 
 Add binaries and libraries to initramfs
 ```
-sudo cat > /etc/initramfs-tools/hooks/tpm2-initramfs-tool <<EOF
+sudo -i
+cat > /etc/initramfs-tools/hooks/tpm2-initramfs-tool <<EOF
 . /usr/share/initramfs-tools/hook-functions
 
 copy_exec /usr/lib/x86_64-linux-gnu/libtss2-tcti-device.so.0
 copy_exec /usr/bin/tpm2-initramfs-tool
 EOF
-sudo chmod 755 /etc/initramfs-tools/hooks/tpm2-initramfs-tool
-sudo update-initramfs -u
+chmod 755 /etc/initramfs-tools/hooks/tpm2-initramfs-tool
+update-initramfs -u
+exit
 ```
 
 Reboot the system, you should not need to type the passphrase and it will unlock the LUKS encrpyted disk from TPM directly.
